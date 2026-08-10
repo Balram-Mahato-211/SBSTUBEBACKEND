@@ -1,4 +1,4 @@
-const Video = require("../models/video");
+const Video = require("../models/Video");
 const User = require("../models/User");
 const jwt = require("jsonwebtoken");
 const cloudinary = require("cloudinary").v2;
