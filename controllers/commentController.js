@@ -1,6 +1,6 @@
 const jwt=require('jsonwebtoken')
 const mogoose=require('mongoose')
-const Comment = require("../models/comment");
+const Comment = require("../models/Comment");
 const Video = require("../models/video");
 
 
