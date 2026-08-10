@@ -1,0 +1,39 @@
+('/signup',signup)
+
+('/login',login)
+
+('/subscribe/:channelId',subscribe)
+
+('/unsubscribe/:channelId',unsubscribe)
+
+('/uploadProfileImage',uploadProfileImage)
+
+('/uploadCoverImage',uploadCoverImage)
+
+('/getChannelInfo/:channelId',getChannelInfo)
+
+('/getUserInfo',getUserInfo)
+
+("/addComment/:videoId", addComment);
+
+("/reply/:commentId", reply);
+
+("/allComments/:videoId", allComments);
+
+("/deleteComment/:commentId", deleteComment);
+
+("/likeComment/:commentId", likeComment);
+
+("/upload", uploadVideo);
+
+("/all", getAllVideos);
+
+('/videoById/:id',getVideoById);
+
+("/likeUnlike", likeUnlike);
+
+("/dislikeUndislike", dislikeUndislike);
+
+("/edit/:id", editVideo);
+
+("/delete/:id", deleteVideo);
