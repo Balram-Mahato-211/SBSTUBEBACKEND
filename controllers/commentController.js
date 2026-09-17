@@ -55,7 +55,8 @@ const reply=async(req,res)=>{
 
         const newReply = {
 
-            userId : tokenData.userId,
+            // userId : tokenData.userId,
+            userId: tokenData._id,
             replyText : req.body.reply
 
         }
@@ -130,8 +131,10 @@ const deleteComment=async(req,res)=>{
         const video = await Video.findById(comment.videoId)
 
         if(
-            comment.userId != tokenData.userId &&
-            video.userId != tokenData.userId
+            // comment.userId != tokenData.userId &&
+            // video.userId != tokenData.userId
+            comment.userId.toString() !== tokenData._id.toString() &&
+    video.uploadedBy.toString() !== tokenData._id.toString()
         )
         {
             return res.status(500).json({
@@ -225,7 +228,9 @@ const likeComment = async (req, res) => {
             });
         }
 
-        const userId = tokenData.userId;
+        // const userId = tokenData.userId;
+        const userId = tokenData._id;
+
 
         // Already liked
         if (comment.likedBy.includes(userId)) {
@@ -243,11 +248,11 @@ const likeComment = async (req, res) => {
 
         // Remove dislike if exists
 
-        if (comment.dislikedBy.includes(userId)) {
+        // if (comment.dislikedBy.includes(userId)) {
 
-            comment.dislikedBy.pull(userId);
-            comment.dislikeCount--;
-        }
+        //     comment.dislikedBy.pull(userId);
+        //     comment.dislikeCount--;
+        // }
 
         comment.likedBy.push(userId);
         comment.likeCount++;

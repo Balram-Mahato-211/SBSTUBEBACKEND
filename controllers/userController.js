@@ -142,17 +142,25 @@ const unsubscribe = async (req, res) => {
         if (!channel.subscriber.map(id => (id.toString())).includes(tokenData._id)) {
             return res.status(500).json({ message: "You are not subscribe this channel" })
         }
-        channel.subscriber = channel.subscriber.filter((userId) => {
-            userId != tokenData._id
-        });
+        channel.subscriber = channel.subscriber.filter(
+    userId => userId.toString() !== tokenData._id.toString()
+);
+
+        // channel.subscriber = channel.subscriber.filter((userId) => {
+        //     userId != tokenData._id
+        // });
 
 
         await channel.save();
 
         const user = await User.findById(tokenData._id)
-        user.subscribedTo = channel.subscribedTo.filter((userId) => {
-            userId != channelId
-        });
+        user.subscribedTo = user.subscribedTo.filter(
+    userId => userId.toString() !== channelId.toString()
+);
+
+        // user.subscribedTo = channel.subscribedTo.filter((userId) => {
+        //     userId != channelId
+        // });
 
         console.log("unsubscirbe successfully");
         res.status(200).json({ message: "unsubscirbe successfully" })
@@ -187,7 +195,7 @@ const uploadProfileImage = async (req, res) => {
         }
         if(user.profileImageId){
 
-            await cloudinary.uploader.delete(user.profileImageId)
+            await cloudinary.uploader.destroy(user.profileImageId)
         }
         const uploadImage = await cloudinary.uploader.upload(req.files.profileImage.tempFilePath, {
     
@@ -225,7 +233,7 @@ const uploadCoverImage = async (req, res) => {
 
          if(user.coverImageId){
 
-            await cloudinary.uploader.delete(user.coverImageId)
+            await cloudinary.uploader.destroy(user.coverImageId)
         }
         const uploadImage = await cloudinary.uploader.upload(req.files.coverImage.tempFilePath, {
             folder: "YouTube/coverImage"
@@ -280,7 +288,7 @@ const getChannelInfo = async (req, res) => {
 //Get User Info 
 const getUserInfo = async (req, res) => {
     try {
-        const userId = req.params.userId
+        // const userId = req.params.userId
         const token = req.headers.authorization.split(" ")[1]
         const tokenData = await jwt.verify(token, process.env.JWT_SECRET)
         const user = await User.findById(tokenData._id).populate("subscribedTo", "-password -subscribedTo")

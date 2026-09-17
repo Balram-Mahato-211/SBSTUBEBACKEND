@@ -93,7 +93,8 @@ const getVideoById = async (req, res) => {
     const { id } = req.params;
 
     const video = await Video.findById(id)
-      .populate("User", "_id channelName profileImageUrl subscribers");
+      // .populate("User", "_id channelName profileImageUrl subscribers");
+.populate("uploadedBy", "_id channelName profileImageUrl");
 
     if (!video) {
       return res.status(404).json({
@@ -245,7 +246,8 @@ const editVideo = async (req, res) => {
       });
     }
 
-    if (video.uploadedBy.toString() !== tokenData._id) {
+    // if (video.uploadedBy.toString() !== tokenData._id) 
+    if (video.uploadedBy.toString() !== tokenData._id.toString()){
       return res.status(401).json({
         message: "Invalid User"
       });
@@ -309,7 +311,8 @@ const deleteVideo = async (req, res) => {
       });
     }
 
-    if (video.uploadedBy.toString() !== tokenData._id) {
+    // if (video.uploadedBy.toString() !== tokenData._id) 
+    if (video.uploadedBy.toString() !== tokenData._id.toString()){
       return res.status(401).json({
         message: "Invalid User"
       });
