@@ -94,9 +94,11 @@ const getVideoById = async (req, res) => {
 
     const { id } = req.params;
 
-    const video = await Video.findById(id)
-
-.populate("uploadedBy", "_id channelName profileImageUrl subscriber");
+const video = await Video.findByIdAndUpdate(
+  id,
+  { $inc: { views: 1 } },
+  { new: true }
+).populate("uploadedBy", "_id channelName profileImageUrl subscriber");
 
     if (!video) {
       return res.status(404).json({
