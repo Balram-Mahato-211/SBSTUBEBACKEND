@@ -12,6 +12,10 @@ const videoSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    category: {
+  type: String,
+  default: "other",
+},
 
     videoUrl: {
       type: String,

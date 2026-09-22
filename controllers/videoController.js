@@ -36,6 +36,8 @@ const uploadVideo = async (req, res) => {
     const newVideo = await Video.create({
       title: req.body.title,
       description: req.body.description,
+      category: req.body.category,
+tags: JSON.parse(req.body.tags || "[]"),
 
       videoUrl: uploadVideo.secure_url,
       videoPublicId: uploadVideo.public_id,
