@@ -89,9 +89,9 @@ const allComments =async(req,res)=>{
             videoId : req.params.videoId
         })
 
-        .populate('userId','fullName imageUrl')
+        .populate('userId','channelName profileImageUrl')
 
-        .populate('replies.userId','fullName imageUrl')
+        .populate('replies.userId','channelName profileImageUrl')
 
         .sort({createdAt : -1})
 
