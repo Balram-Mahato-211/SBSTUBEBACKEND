@@ -126,7 +126,19 @@ const video = await Video.findByIdAndUpdate(
 const likeUnlike = async (req, res) => {
   try {
 
-    const { videoId, userId } = req.body;
+    // Login check - userId token se lo, body se nahi
+    const token = req.headers.authorization?.split(" ")[1];
+
+    if (!token) {
+      return res.status(401).json({
+        message: "Please login first"
+      });
+    }
+
+    const tokenData = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = tokenData._id.toString();
+
+    const { videoId } = req.body;
 
     const video = await Video.findById(videoId);
 
@@ -156,7 +168,9 @@ const likeUnlike = async (req, res) => {
       await video.save();
 
       return res.status(200).json({
-        message: "Video Unliked"
+        message: "Video Unliked",
+        likesUser: video.likesUser,
+        dislikeUser: video.dislikeUser
       });
     }
 
@@ -166,10 +180,18 @@ const likeUnlike = async (req, res) => {
     await video.save();
 
     res.status(200).json({
-      message: "Video Liked"
+      message: "Video Liked",
+      likesUser: video.likesUser,
+      dislikeUser: video.dislikeUser
     });
 
   } catch (err) {
+
+    if (err instanceof jwt.JsonWebTokenError) {
+      return res.status(401).json({
+        message: "Invalid or expired token, please login again"
+      });
+    }
 
     res.status(500).json({
       message: "Something went wrong"
@@ -182,7 +204,19 @@ const dislikeUndislike = async (req, res) => {
 
   try {
 
-    const { videoId, userId } = req.body;
+    // Login check - userId token se lo, body se nahi
+    const token = req.headers.authorization?.split(" ")[1];
+
+    if (!token) {
+      return res.status(401).json({
+        message: "Please login first"
+      });
+    }
+
+    const tokenData = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = tokenData._id.toString();
+
+    const { videoId } = req.body;
 
     const video = await Video.findById(videoId);
 
@@ -212,7 +246,9 @@ const dislikeUndislike = async (req, res) => {
       await video.save();
 
       return res.status(200).json({
-        message: "Video Undisliked"
+        message: "Video Undisliked",
+        likesUser: video.likesUser,
+        dislikeUser: video.dislikeUser
       });
     }
 
@@ -222,10 +258,18 @@ const dislikeUndislike = async (req, res) => {
     await video.save();
 
     res.status(200).json({
-      message: "Video Disliked"
+      message: "Video Disliked",
+      likesUser: video.likesUser,
+      dislikeUser: video.dislikeUser
     });
 
   } catch (err) {
+
+    if (err instanceof jwt.JsonWebTokenError) {
+      return res.status(401).json({
+        message: "Invalid or expired token, please login again"
+      });
+    }
 
     res.status(500).json({
       message: "Something went wrong"
