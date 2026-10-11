@@ -5,9 +5,22 @@ const Video = require("../models/Video");
 
 const addComment = async (req, res) => {
   try {
-    const token = req.headers.authorization.split(" ")[1];
+    // sirf login user comment kar sakta hai
+    const token = req.headers.authorization?.split(" ")[1];
 
-    const tokenData = await jwt.verify(token, process.env.JWT_SECRET);
+    if (!token) {
+      return res.status(401).json({
+        message: "Please login first",
+      });
+    }
+
+    const tokenData = jwt.verify(token, process.env.JWT_SECRET);
+
+    if (!req.body.comment?.trim()) {
+      return res.status(400).json({
+        message: "Comment cannot be empty",
+      });
+    }
 
     const newComment = new Comment({
       videoId: req.params.videoId,
@@ -23,6 +36,12 @@ const addComment = async (req, res) => {
     });
   } catch (err) {
     console.log(err);
+
+    if (err instanceof jwt.JsonWebTokenError) {
+      return res.status(401).json({
+        message: "Invalid or expired token, please login again",
+      });
+    }
 
     res.status(500).json({
       error: err,
@@ -71,10 +90,18 @@ const reply = async (req, res) => {
 
   const allComments = async (req, res) => {
   try {
-    const token = req.headers.authorization.split(" ")[1];
-    const tokenData = jwt.verify(token, process.env.JWT_SECRET);
+    // comments sab dekh sakte hain, login ho to isLiked bhi batao
+    let userId = null;
+    const token = req.headers.authorization?.split(" ")[1];
 
-    const userId = tokenData._id;
+    if (token) {
+      try {
+        userId = jwt.verify(token, process.env.JWT_SECRET)._id.toString();
+      } catch (err) {
+        console.log("Invalid token:", err);
+      }
+    }
+
     const comments = await Comment.find({
       videoId: req.params.videoId,
     })
@@ -87,8 +114,8 @@ const reply = async (req, res) => {
       ...comment.toObject(),
 
       
-      isLiked: comment.likedBy.some(
-        (id) => id.toString() === userId.toString()
+      isLiked: !!userId && comment.likedBy.some(
+        (id) => id?.toString() === userId
       ),
     }));
 

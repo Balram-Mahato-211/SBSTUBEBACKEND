@@ -118,9 +118,10 @@ const video = await Video.findByIdAndUpdate(
         const tokenData = jwt.verify(token, process.env.JWT_SECRET);
         const userId = tokenData._id.toString();
 
-        likedStatus = video.likesUser.some(id => id.toString() === userId);
-        dislikeStatus = video.dislikeUser.some(id => id.toString() === userId);
-        subscribeStatus = video.uploadedBy.subscriber.some(id => id.toString() === userId);
+        likedStatus = video.likesUser.some(id => id?.toString() === userId);
+        dislikeStatus = video.dislikeUser.some(id => id?.toString() === userId);
+        // purane videos me uploadedBy nahi hai
+        subscribeStatus = !!video.uploadedBy?.subscriber?.some(id => id?.toString() === userId);
       } catch (err) {
         console.log("Invalid token:", err);
       }
@@ -144,6 +145,17 @@ const video = await Video.findByIdAndUpdate(
 
   }
  
+};
+
+// kuch purane videos ke likesUser/dislikeUser me null pada hai (pehle galat userId push ho gaya tha).
+// null pe id.toString() crash karta hai aur count bhi galat dikhata hai, isliye usko hata do.
+const removeNullReactions = async (video) => {
+  if (video.likesUser.includes(null) || video.dislikeUser.includes(null)) {
+    await Video.updateOne(
+      { _id: video._id },
+      { $pull: { likesUser: null, dislikeUser: null } }
+    );
+  }
 };
 
 const likeUnlike = async (req, res) => {
@@ -171,9 +183,11 @@ const likeUnlike = async (req, res) => {
       });
     }
 
+    await removeNullReactions(video);
+
     // Like already hai?
     const liked = video.likesUser.some(
-      id => id.toString() === userId
+      id => id?.toString() === userId
     );
 
     // video.save() nahi - wo poora document validate karta hai aur purane videos
@@ -238,9 +252,11 @@ const dislikeUndislike = async (req, res) => {
       });
     }
 
+    await removeNullReactions(video);
+
     // if already dislike hai
     const disliked = video.dislikeUser.some(
-      id => id.toString() === userId
+      id => id?.toString() === userId
     );
 
     // likeUnlike jaisa hi - save() ki jagah sirf arrays update karo. Like hai to wo bhi hatao.

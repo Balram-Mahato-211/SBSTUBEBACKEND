@@ -85,53 +85,24 @@ const login=async(req,res)=>{
 }
 
 //subscribe
-const subscribe=async(req,res)=>{
-   try{
-const channelId = req.params.channelId;
-    const token=req.headers.authorization.split(" ")[1]
-   
-   const tokenData=jwt.verify(token,process.env.JWT_SECRET)
-  if(tokenData._id==channelId){
-    return res.status(500).json({message:'You cannot subsribe yourself'})
-  }
-  const channel=await User.findById(channelId)
-if (!channel) {
-    return res.status(404).json({
-        message: "Channel not found"
-    });
-}
- if(channel.subscriber.map(id=>(id.toString())).includes(tokenData._id)){
-    return res.status(500).json({message:"already subscribed"})
- }
-   channel.subscriber.push(tokenData._id);
-        await channel.save();
-        console.log("subscirbe successfully");
-        res.status(200).json({message: "subscirbe successfully"})
-        
-   const user=await User.findById(tokenData._id)
-   user.subscribedTo.push(channelId)
- await  user.save()
-    console.log(user);
-
-
-}
-   catch(err)
-   {
-    console.log(err);
-            res.status(500).json({msg:'Subscribed failed'})
-
-   }
-    
-}
-
-//unsubscribe
-const unsubscribe = async (req, res) => {
-
+// subscribe/unsubscribe me save() nahi - wo poora user validate karta hai aur purane users
+// (jinme description nahi hai) pe fail ho jata hai. Sirf subscriber/subscribedTo arrays update karo.
+const subscribe = async (req, res) => {
     try {
         const channelId = req.params.channelId;
-        const token = req.headers.authorization.split(" ")[1]
 
-        const tokenData = await jwt.verify(token, process.env.JWT_SECRET)
+        // sirf login user subscribe kar sakta hai
+        const token = req.headers.authorization?.split(" ")[1]
+        if (!token) {
+            return res.status(401).json({ message: "Please login first" })
+        }
+
+        const tokenData = jwt.verify(token, process.env.JWT_SECRET)
+        const userId = tokenData._id.toString()
+
+        if (userId === channelId) {
+            return res.status(400).json({ message: 'You cannot subscribe yourself' })
+        }
 
         const channel = await User.findById(channelId)
         if (!channel) {
@@ -139,45 +110,54 @@ const unsubscribe = async (req, res) => {
                 message: "Channel not found"
             });
         }
-        if (!channel.subscriber.map(id => (id.toString())).includes(tokenData._id)) {
-            return res.status(500).json({ message: "You are not subscribe this channel" })
-        }
-        channel.subscriber = channel.subscriber.filter(
-    userId => userId.toString() !== tokenData._id.toString()
-);
 
-        // channel.subscriber = channel.subscriber.filter((userId) => {
-        //     userId != tokenData._id
-        // });
+        // $addToSet - already subscribed hai to dobara add nahi hoga
+        await User.updateOne({ _id: channelId }, { $addToSet: { subscriber: userId } })
+        await User.updateOne({ _id: userId }, { $addToSet: { subscribedTo: channelId } })
 
-
-        await channel.save();
-
-        const user = await User.findById(tokenData._id)
-        user.subscribedTo = user.subscribedTo.filter(
-    userId => userId.toString() !== channelId.toString()
-);
-
-        // user.subscribedTo = channel.subscribedTo.filter((userId) => {
-        //     userId != channelId
-        // });
-
-        console.log("unsubscirbe successfully");
-        res.status(200).json({ message: "unsubscirbe successfully" })
-
-
-        await user.save()
-        console.log(user);
-
-
+        res.status(200).json({ message: "subscribe successfully" })
     }
     catch (err) {
         console.log(err);
+        if (err instanceof jwt.JsonWebTokenError) {
+            return res.status(401).json({ message: "Invalid or expired token, please login again" })
+        }
         res.status(500).json({ msg: 'Subscribed failed' })
-
-
     }
+}
 
+//unsubscribe
+const unsubscribe = async (req, res) => {
+    try {
+        const channelId = req.params.channelId;
+
+        const token = req.headers.authorization?.split(" ")[1]
+        if (!token) {
+            return res.status(401).json({ message: "Please login first" })
+        }
+
+        const tokenData = jwt.verify(token, process.env.JWT_SECRET)
+        const userId = tokenData._id.toString()
+
+        const channel = await User.findById(channelId)
+        if (!channel) {
+            return res.status(404).json({
+                message: "Channel not found"
+            });
+        }
+
+        await User.updateOne({ _id: channelId }, { $pull: { subscriber: userId } })
+        await User.updateOne({ _id: userId }, { $pull: { subscribedTo: channelId } })
+
+        res.status(200).json({ message: "unsubscribe successfully" })
+    }
+    catch (err) {
+        console.log(err);
+        if (err instanceof jwt.JsonWebTokenError) {
+            return res.status(401).json({ message: "Invalid or expired token, please login again" })
+        }
+        res.status(500).json({ msg: 'Unsubscribe failed' })
+    }
 }
 
 
