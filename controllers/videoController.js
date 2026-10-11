@@ -106,9 +106,32 @@ const video = await Video.findByIdAndUpdate(
       });
     }
 
+    //no login -->sb false
+    let likedStatus = false;
+    let dislikeStatus = false;
+    let subscribeStatus = false;
+
+    const token = req.headers.authorization?.split(" ")[1];
+
+    if (token) {
+      try {
+        const tokenData = jwt.verify(token, process.env.JWT_SECRET);
+        const userId = tokenData._id.toString();
+
+        likedStatus = video.likesUser.some(id => id.toString() === userId);
+        dislikeStatus = video.dislikeUser.some(id => id.toString() === userId);
+        subscribeStatus = video.uploadedBy.subscriber.some(id => id.toString() === userId);
+      } catch (err) {
+        console.log("Invalid token:", err);
+      }
+    }
+
     res.status(200).json({
       message: "Video fetched successfully",
-      data: video
+      data: video,
+      likedStatus,
+      dislikeStatus,
+      subscribeStatus
     });
 
   } catch (err) {
@@ -126,7 +149,7 @@ const video = await Video.findByIdAndUpdate(
 const likeUnlike = async (req, res) => {
   try {
 
-    // Login check - userId token se lo, body se nahi
+    // Login check - userId token not by body 
     const token = req.headers.authorization?.split(" ")[1];
 
     if (!token) {
@@ -148,44 +171,33 @@ const likeUnlike = async (req, res) => {
       });
     }
 
-    // Agar dislike hai to remove karo
-    video.dislikeUser = video.dislikeUser.filter(
-      id => id.toString() !== userId
-    );
-
     // Like already hai?
     const liked = video.likesUser.some(
       id => id.toString() === userId
     );
 
-    if (liked) {
-
-      // Unlike
-      video.likesUser = video.likesUser.filter(
-        id => id.toString() !== userId
-      );
-
-      await video.save();
-
-      return res.status(200).json({
-        message: "Video Unliked",
-        likesUser: video.likesUser,
-        dislikeUser: video.dislikeUser
-      });
-    }
-
-    // Like
-    video.likesUser.push(userId);
-
-    await video.save();
+    // video.save() nahi - wo poora document validate karta hai aur purane videos
+    // (jinme uploadedBy/videoPublicId nahi hai) pe fail ho jata hai.
+    // Sirf likesUser/dislikeUser update karo. Dislike hai to wo bhi hatao.
+    const updatedVideo = await Video.findByIdAndUpdate(
+      videoId,
+      liked
+        ? { $pull: { likesUser: userId, dislikeUser: userId } }               // Unlike
+        : { $addToSet: { likesUser: userId }, $pull: { dislikeUser: userId } }, // Like
+      { returnDocument: "after" }
+    );
 
     res.status(200).json({
-      message: "Video Liked",
-      likesUser: video.likesUser,
-      dislikeUser: video.dislikeUser
+      message: liked ? "Video Unliked" : "Video Liked",
+      likesUser: updatedVideo.likesUser,
+      dislikeUser: updatedVideo.dislikeUser,
+      likedStatus: !liked,
+      dislikeStatus: false
     });
 
   } catch (err) {
+
+    console.log(err);
 
     if (err instanceof jwt.JsonWebTokenError) {
       return res.status(401).json({
@@ -226,44 +238,31 @@ const dislikeUndislike = async (req, res) => {
       });
     }
 
-    // Agar like hai to remove karo
-    video.likesUser = video.likesUser.filter(
-      id => id.toString() !== userId
-    );
-
-    // Dislike already hai?
+    // if already dislike hai
     const disliked = video.dislikeUser.some(
       id => id.toString() === userId
     );
 
-    if (disliked) {
-
-      // Undislike
-      video.dislikeUser = video.dislikeUser.filter(
-        id => id.toString() !== userId
-      );
-
-      await video.save();
-
-      return res.status(200).json({
-        message: "Video Undisliked",
-        likesUser: video.likesUser,
-        dislikeUser: video.dislikeUser
-      });
-    }
-
-    // Dislike
-    video.dislikeUser.push(userId);
-
-    await video.save();
+    // likeUnlike jaisa hi - save() ki jagah sirf arrays update karo. Like hai to wo bhi hatao.
+    const updatedVideo = await Video.findByIdAndUpdate(
+      videoId,
+      disliked
+        ? { $pull: { dislikeUser: userId, likesUser: userId } }               // Undislike
+        : { $addToSet: { dislikeUser: userId }, $pull: { likesUser: userId } }, // Dislike
+      { returnDocument: "after" }
+    );
 
     res.status(200).json({
-      message: "Video Disliked",
-      likesUser: video.likesUser,
-      dislikeUser: video.dislikeUser
+      message: disliked ? "Video Undisliked" : "Video Disliked",
+      likesUser: updatedVideo.likesUser,
+      dislikeUser: updatedVideo.dislikeUser,
+      likedStatus: false,
+      dislikeStatus: !disliked
     });
 
   } catch (err) {
+
+    console.log(err);
 
     if (err instanceof jwt.JsonWebTokenError) {
       return res.status(401).json({
