@@ -20,6 +20,8 @@
 
 ("/allComments/:videoId", allComments);
 
+("/editComment/:commentId", editComment);
+
 ("/deleteComment/:commentId", deleteComment);
 
 ("/likeComment/:commentId", likeComment);

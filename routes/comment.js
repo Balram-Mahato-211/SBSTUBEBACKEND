@@ -5,6 +5,7 @@ const {
   addComment,
   reply,
   allComments,
+  editComment,
   deleteComment,
   deleteReply,
   likeComment
@@ -22,6 +23,8 @@ router.post("/addComment/:videoId", addComment);
 router.post("/reply/:commentId", reply);
 
 router.get("/allComments/:videoId", allComments);
+
+router.put("/editComment/:commentId", editComment);
 
 router.delete("/deleteComment/:commentId", deleteComment);
 

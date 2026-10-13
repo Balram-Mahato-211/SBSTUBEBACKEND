@@ -132,30 +132,92 @@ const reply = async (req, res) => {
   }
 };
 
-const deleteComment = async (req, res) => {
+//comment edit
+const editComment = async (req, res) => {
   try {
-    const token = req.headers.authorization.split(" ")[1];
+    const token = req.headers.authorization?.split(" ")[1];
 
-    const tokenData = await jwt.verify(token, process.env.JWT_SECRET);
+    if (!token) {
+      return res.status(500).json({
+        message: "Please login first",
+      });
+    }
+
+    const tokenData = jwt.verify(token, process.env.JWT_SECRET);
+
+    if (!req.body.comment?.trim()) {
+      return res.status(500).json({
+        message: "Comment cannot be empty",
+      });
+    }
 
     const comment = await Comment.findById(req.params.commentId);
 
     if (!comment) {
-      return res.status(404).json({
-        msg: "comment not found",
+      return res.status(500).json({
+        message: "comment not found",
+      });
+    }
+
+    if (comment.userId.toString() !== tokenData._id.toString()) {
+      return res.status(500).json({
+        message: "You can edit only your own comment",
+      });
+    }
+
+    comment.commentText = req.body.comment;
+    await comment.save();
+
+    res.status(200).json({
+      msg: "comment updated",
+      data: comment,
+    });
+  } catch (err) {
+    console.log(err);
+
+    if (err instanceof jwt.JsonWebTokenError) {
+      return res.status(500).json({
+        message: "Invalid or expired token, please login again",
+      });
+    }
+
+    res.status(500).json({
+      error: err,
+    });
+  }
+};
+
+// comment delete 
+const deleteComment = async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+
+    if (!token) {
+      return res.status(500).json({
+        message: "Please login first",
+      });
+    }
+
+    const tokenData = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = tokenData._id.toString();
+
+    const comment = await Comment.findById(req.params.commentId);
+
+    if (!comment) {
+      return res.status(500).json({
+        message: "comment not found",
       });
     }
 
     const video = await Video.findById(comment.videoId);
 
-    if (
-      // comment.userId != tokenData.userId &&
-      // video.userId != tokenData.userId
-      comment.userId.toString() !== tokenData._id.toString() &&
-      video.uploadedBy.toString() !== tokenData._id.toString()
-    ) {
+    // purane videos me uploadedBy nahi hai
+    const isCommentOwner = comment.userId.toString() === userId;
+    const isVideoOwner = video?.uploadedBy?.toString() === userId;
+
+    if (!isCommentOwner && !isVideoOwner) {
       return res.status(500).json({
-        msg: "not authorized",
+        message: "You are not allowed to delete this comment",
       });
     }
 
@@ -166,6 +228,12 @@ const deleteComment = async (req, res) => {
     });
   } catch (err) {
     console.log(err);
+
+    if (err instanceof jwt.JsonWebTokenError) {
+      return res.status(500).json({
+        message: "Invalid or expired token, please login again",
+      });
+    }
 
     res.status(500).json({
       error: err,
@@ -182,7 +250,7 @@ const deleteReply = async (req, res) => {
     const comment = await Comment.findById(req.params.commentId);
 
     if (!comment) {
-      return res.status(404).json({
+      return res.status(500).json({
         msg: "comment not found",
       });
     }
@@ -190,7 +258,7 @@ const deleteReply = async (req, res) => {
     const reply = comment.replies.id(req.params.replyId);
 
     if (!reply) {
-      return res.status(404).json({
+      return res.status(500).json({
         msg: "reply not found",
       });
     }
@@ -247,13 +315,7 @@ const likeComment = async (req, res) => {
       });
     }
 
-    // Remove dislike if exists
-
-    // if (comment.dislikedBy.includes(userId)) {
-
-    //     comment.dislikedBy.pull(userId);
-    //     comment.dislikeCount--;
-    // }
+    
 
     comment.likedBy.push(userId);
     comment.likeCount++;
@@ -273,56 +335,12 @@ const likeComment = async (req, res) => {
   }
 };
 
-// const comments = [
-//   {
-//     _id: 2345,
-//     commentText: "video thik tha",
-//     userId: 1234,
-//     videoId: 2224,
-//     commentBy: [222, 456, 666, 265],
-//   },
-
-//   {
-//     _id: 1145,
-//     commentText: "video was awesome",
-//     userId: 456,
-//     videoId: 2224,
-//     commentBy: [123, 456, 789],
-//   },
-
-//   {
-//     _id: 3389,
-//     commentText: "bahut achha video hai",
-//     userId: 789,
-//     videoId: 2224,
-//     commentBy: [222, 789, 999, 456],
-//   },
-
-//   {
-//     _id: 4472,
-//     commentText: "content kaafi useful tha",
-//     userId: 222,
-//     videoId: 2224,
-//     commentBy: [111, 333, 555],
-//   },
-
-//   {
-//     _id: 5567,
-//     commentText: "nice video",
-//     userId: 999,
-//     videoId: 2224,
-//     commentBy: [222, 456, 999],
-//   },
-// ];
-// const result = comments.map(comment => ({
-//   commentId: comment._id,
-//   userId: comment.commentBy.includes(userId) ? userId : null
-// }));
 
 module.exports = {
   addComment,
   reply,
   allComments,
+  editComment,
   deleteComment,
   deleteReply,
   likeComment,
