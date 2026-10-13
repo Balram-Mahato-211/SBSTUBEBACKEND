@@ -9,7 +9,7 @@ const addComment = async (req, res) => {
     const token = req.headers.authorization?.split(" ")[1];
 
     if (!token) {
-      return res.status(401).json({
+      return res.status(500).json({
         message: "Please login first",
       });
     }
@@ -17,7 +17,7 @@ const addComment = async (req, res) => {
     const tokenData = jwt.verify(token, process.env.JWT_SECRET);
 
     if (!req.body.comment?.trim()) {
-      return res.status(400).json({
+      return res.status(500).json({
         message: "Comment cannot be empty",
       });
     }
@@ -38,7 +38,7 @@ const addComment = async (req, res) => {
     console.log(err);
 
     if (err instanceof jwt.JsonWebTokenError) {
-      return res.status(401).json({
+      return res.status(500).json({
         message: "Invalid or expired token, please login again",
       });
     }
@@ -58,7 +58,7 @@ const reply = async (req, res) => {
     const comment = await Comment.findById(req.params.commentId);
 
     if (!comment) {
-      return res.status(404).json({
+      return res.status(500).json({
         msg: "comment not found",
       });
     }
@@ -294,7 +294,7 @@ const likeComment = async (req, res) => {
     const comment = await Comment.findById(req.params.commentId);
 
     if (!comment) {
-      return res.status(404).json({
+      return res.status(500).json({
         msg: "Comment not found",
       });
     }
